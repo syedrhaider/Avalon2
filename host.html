@@ -516,8 +516,8 @@
                 questDiv.className = 'quest-round';
                 questDiv.innerHTML = `
                     <label>Quest ${i}:</label>
-                    <input type="number" placeholder="Players needed" min="2" max="5" value="2" onchange="updateQuestConfig(${i-1}, 'players', this.value)">
-                    <input type="number" placeholder="Rejects needed to fail" min="1" max="3" value="1" onchange="updateQuestConfig(${i-1}, 'rejects', this.value)">
+                    <input type="number" placeholder="Players needed" min="2" max="5" value="" onchange="updateQuestConfig(${i-1}, 'players', this.value)">
+                    <input type="number" placeholder="Rejects needed to fail" min="1" max="3" value="" onchange="updateQuestConfig(${i-1}, 'rejects', this.value)">
                 `;
                 questRounds.appendChild(questDiv);
                 gameState.questConfig.push({players: 2, rejects: 1});
