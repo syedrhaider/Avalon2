@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avalon - Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #f0f0f0;
+            padding: 20px;
+        }
+
+        .player-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .player-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .secret-info {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .role-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .role-category {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .good {
+            background: rgba(78, 205, 196, 0.3);
+            color: #4ecdc4;
+            border: 1px solid #4ecdc4;
+        }
+
+        .evil {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+        }
+
+        .special-knowledge {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .game-board {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .round-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .round-number {
+            font-size: 1.5rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .team-leader {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+
+        .player-selection {
+            margin: 20px 0;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .player-toggle {
+            padding: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .player-toggle:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .player-toggle.selected {
+            background: rgba(78, 205, 196, 0.3);
+            border-color: #4ecdc4;
+            color: #4ecdc4;
+        }
+
+        .player-toggle.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .player-toggle.good-revealed {
+            background: rgba(78, 205, 196, 0.2);
+            border-color: #4ecdc4;
+        }
+
+        .player-toggle.evil-revealed {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+        }
+
+        .player-toggle.offline {
+            opacity: 0.6;
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(45deg, #45b7b8, #3d9970);
+            transform: translateY(-2px);
+        }
+
+        .btn-approve {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-reject {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+
+        .btn-kill {
+            background: linear-gradient(45deg, #8b0000, #b22222);
+            color: white;
+        }
+
+        .voting-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .voting-status {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .vote-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .voted {
+            background: #4ecdc4;
+        }
+
+        .not-voted {
+            background: #666;
+        }
+
+        .stat-cards {
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4ecdc4;
+        }
+
+        .stat-card.rejected {
+            border-left-color: #ff6b6b;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .team-members {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        .team-member {
+            background: rgba(78, 205, 196, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .votes-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .vote-item {
+            padding: 5px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .vote-approve {
+            background: rgba(78, 205, 196, 0.3);
+            color: #4ecdc4;
+        }
+
+        .vote-reject {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .game-over {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            font-size: 1.5rem;
+            color: #ffd700;
+        }
+
+        .paused-message {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ffd700;
+        }
+
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #ffcccb;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .player-container {
+                padding: 0 10px;
+            }
+            
+            .role-info {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .round-info {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .players-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <!-- Paused Message -->
+        <div class="paused-message hidden" id="pausedMessage">
+            <h3>Game Paused</h3>
+            <p id="pausedReason">A player has left the game. Waiting for them to reconnect...</p>
+        </div>
+
+        <!-- Player Info Section -->
+        <div class="player-info">
+            <div class="secret-info">
+                <div class="role-info">
+                    <div>
+                        <strong>Name:</strong> <span id="playerName">Loading...</span>
+                    </div>
+                    <div>
+                        <strong>Role:</strong> <span id="playerRole">Loading...</span>
+                    </div>
+                    <div class="role-category" id="roleCategory">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="special-knowledge hidden" id="specialKnowledge">
+                <h4 style="color: #ffd700; margin-bottom: 10px;">Special Knowledge</h4>
+                <div id="knowledgeContent"></div>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="game-board">
+            <div class="round-info">
+                <div class="round-number">Round <span id="currentRound">1</span></div>
+                <div class="team-leader">
+                    <strong>Team Leader:</strong> <span id="currentLeader">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Team Selection -->
+            <div class="player-selection" id="teamSelection">
+                <h4 style="color: #ffd700; margin-bottom: 15px;">Select Team Members (<span id="requiredPlayers">2</span> needed)</h4>
+                <div class="players-grid" id="playersGrid"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="finalizeTeamBtn" onclick="finalizeTeam()" disabled>Finalize Team</button>
+                </div>
+            </div>
+
+            <!-- Team Voting -->
+            <div class="voting-section hidden" id="teamVoting">
+                <h4 style="color: #ffd700; margin-bottom: 15px;">Vote on Proposed Team</h4>
+                <div class="team-members" id="proposedTeam"></div>
+                <div class="voting-status" id="teamVotingStatus"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-approve" id="approveTeamBtn" onclick="voteOnTeam(true)">Approve</button>
+                    <button class="btn btn-reject" id="rejectTeamBtn" onclick="voteOnTeam(false)">Reject</button>
+                </div>
+            </div>
+
+            <!-- Quest Voting -->
+            <div class="voting-section hidden" id="questVoting">
+                <h4 style="color: #ffd700; margin-bottom: 15px;">Vote on Quest (Secret Vote)</h4>
+                <p>As a team member, cast your secret vote for this quest:</p>
+                <div class="action-buttons">
+                    <button class="btn btn-approve" onclick="voteOnQuest(true)">Success</button>
+                    <button class="btn btn-reject" onclick="voteOnQuest(false)">Fail</button>
+                </div>
+            </div>
+
+            <!-- Assassination Phase -->
+            <div class="voting-section hidden" id="assassinationPhase">
+                <h4 style="color: #ffd700; margin-bottom: 15px;">Choose Merlin to Kill</h4>
+                <p style="margin-bottom: 15px;">Good has won the majority of quests! As the Assassin, select who you think is Merlin:</p>
+                <div class="players-grid" id="assassinationGrid"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-kill" id="killMerlinBtn" onclick="killMerlin()" disabled>Kill the Merlin</button>
+                </div>
+            </div>
+
+            <!-- Game Over -->
+            <div class="game-over hidden" id="gameOver">
+                <h2 id="gameResult">Game Over</h2>
+                <p id="gameDetails">Details will appear here</p>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="location.href='index.html'">Play Again</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stat-cards" id="statCards">
+            <h4 style="color: #ffd700; margin-bottom: 15px;">Game History</h4>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, get, onValue, push, remove, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase configuration (replace with your actual config)
+        const firebaseConfig = {
+            apiKey: "your-api-key-here",
+            authDomain: "your-project-id.firebaseapp.com",
+            databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project-id.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        // Make Firebase available globally
+        window.firebase = {
+            database,
+            auth,
+            ref,
+            set,
+            get,
+            onValue,
+            push,
+            remove,
+            onDisconnect,
+            serverTimestamp,
+            signInAnonymously
+        };
+    </script>
+
+    <script>
+        let currentUser = null;
+        let roomRef = null;
+        let roomCode = '';
+        let currentPlayerId = '';
+        let playerName = '';
+        let playerRole = '';
+        let gameData = {};
+        let selectedPlayers = [];
+        let assassinTarget = null;
+        let hasVoted = {};
+
+        // Quest configuration (players needed per round for different player counts)
+        const questConfigs = {
+            5: [2, 3, 2, 3, 3],
+            6: [2, 3, 4, 3, 4],
+            7: [2, 3, 3, 4, 4],
+            8: [3, 4, 4, 5, 5],
+            9: [3, 4, 4, 5, 5],
+            10: [3, 4, 4, 5, 5]
+        };
+
+        // Initialize Firebase and game
+        async function initFirebase() {
+            try {
+                const userCredential = await firebase.signInAnonymously(firebase.auth);
+                currentUser = userCredential.user;
+                
+                // Get stored game info
+                roomCode = localStorage.getItem('avalonRoomCode');
+                currentPlayerId = localStorage.getItem('avalonPlayerId');
+                playerName = localStorage.getItem('avalonPlayerName');
+
+                if (!roomCode || !currentPlayerId || !playerName) {
+                    showError('No game session found. Redirecting to main menu...');
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                    return;
+                }
+
+                await connectToGame();
+                
+            } catch (error) {
+                console.error('Firebase authentication error:', error);
+                showError('Failed to connect to Firebase. Please refresh the page.');
+            }
+        }
+
+        async function connectToGame() {
+            try {
+                roomRef = firebase.ref(firebase.database, `rooms/${roomCode}`);
+                
+                // Check if room exists
+                const roomSnapshot = await firebase.get(roomRef);
+                if (!roomSnapshot.exists()) {
+                    showError('Game room not found. Redirecting to main menu...');
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                    return;
+                }
+
+                // Mark player as online
+                const playerRef = firebase.ref(firebase.database, `rooms/${roomCode}/players/${currentPlayerId}`);
+                await firebase.set(firebase.ref(firebase.database, `rooms/${roomCode}/players/${currentPlayerId}/isOnline`), true);
+                
+                // Set up disconnect handling
+                firebase.onDisconnect(playerRef).update({ isOnline: false });
+
+                // Set up real-time listeners
+                setupGameListeners();
+
+            } catch (error) {
+                console.error('Error connecting to game:', error);
+                showError('Failed to connect to game. Please try refreshing.');
+            }
+        }
+
+        function setupGameListeners() {
+            // Listen to entire room data
+            firebase.onValue(roomRef, (snapshot) => {
+                const roomData = snapshot.val();
+                if (!roomData) {
+                    showError('Game room was deleted. Redirecting to main menu...');
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                    return;
+                }
+
+                gameData = roomData;
+                updateGameState();
+                checkForDisconnectedPlayers();
+            });
+        }
+
+        function updateGameState() {
+            if (!gameData || !gameData.gameState) return;
+
+            // Update player info
+            displayPlayerInfo();
+            displaySpecialKnowledge();
+
+            // Update game board based on phase
+            const gameState = gameData.gameState;
+            
+            switch(gameState.phase) {
+                case 'waiting':
+                    showError('Game has not started yet. Waiting for host...');
+                    break;
+                case 'playing':
+                    updateGameBoard();
+                    break;
+                case 'paused':
+                    showPausedMessage(gameState.pauseReason || 'Game is paused');
+                    break;
+                case 'finished':
+                    showGameOver();
+                    break;
+            }
+        }
+
+        function displayPlayerInfo() {
+            if (!gameData.playerRoles || !gameData.playerRoles[currentPlayerId]) return;
+
+            playerRole = gameData.playerRoles[currentPlayerId];
+            const isGood = ['Merlin', 'Percival', 'Loyal Servant of Arthur'].includes(playerRole);
+
+            document.getElementById('playerName').textContent = playerName;
+            document.getElementById('playerRole').textContent = playerRole;
+            
+            const categoryElement = document.getElementById('roleCategory');
+            categoryElement.textContent = isGood ? 'GOOD' : 'EVIL';
+            categoryElement.className = `role-category ${isGood ? 'good' : 'evil'}`;
+        }
+
+        function displaySpecialKnowledge() {
+            if (!gameData.playerRoles) return;
+
+            const knowledgeDiv = document.getElementById('specialKnowledge');
+            const contentDiv = document.getElementById('knowledgeContent');
+            const playerRoles = gameData.playerRoles;
+            const players = gameData.players;
+
+            let hasSpecialKnowledge = false;
+            let knowledgeContent = '';
+
+            if (playerRole === 'Merlin') {
+                hasSpecialKnowledge = true;
+                const evilPlayers = gameData.gameState.playerOrder.filter(playerId => {
+                    const role = playerRoles[playerId];
+                    return ['Assassin', 'Morgana', 'Minion of Mordred', 'Oberon'].includes(role);
+                }).map(playerId => players[playerId].name);
+                knowledgeContent = `<strong>Evil Players (except Mordred):</strong> ${evilPlayers.join(', ')}`;
+            } else if (playerRole === 'Percival') {
+                hasSpecialKnowledge = true;
+                const merlinMorgana = gameData.gameState.playerOrder.filter(playerId => {
+                    const role = playerRoles[playerId];
+                    return ['Merlin', 'Morgana'].includes(role);
+                }).map(playerId => players[playerId].name);
+                knowledgeContent = `<strong>Merlin and Morgana (don't know which is which):</strong> ${merlinMorgana.join(', ')}`;
+            } else if (['Assassin', 'Mordred', 'Morgana', 'Minion of Mordred'].includes(playerRole)) {
+                hasSpecialKnowledge = true;
+                const evilTeam = gameData.gameState.playerOrder.filter(playerId => {
+                    const role = playerRoles[playerId];
+                    return ['Assassin', 'Mordred', 'Morgana', 'Minion of Mordred'].includes(role);
+                }).map(playerId => players[playerId].name);
+                knowledgeContent = `<strong>Evil Team:</strong> ${evilTeam.join(', ')}`;
+            }
+
+            if (hasSpecialKnowledge) {
+                contentDiv.innerHTML = knowledgeContent;
+                knowledgeDiv.classList.remove('hidden');
+            }
+        }
+
+        function updateGameBoard() {
+            const gameState = gameData.gameState;
+            const settings = gameData.settings;
+            const playerOrder = gameState.playerOrder || [];
+            
+            // Update round info
+            document.getElementById('currentRound').textContent = gameState.currentRound || 1;
+            
+            const currentLeaderId = playerOrder[gameState.currentLeaderIndex || 0];
+            const currentLeaderName = gameData.players[currentLeaderId]?.name || 'Unknown';
+            document.getElementById('currentLeader').textContent = currentLeaderName;
+
+            // Update quest requirements
+            const totalPlayers = playerOrder.length;
+            const questConfig = questConfigs[totalPlayers] || questConfigs[5];
+            const currentQuestIndex = (gameState.currentRound || 1) - 1;
+            const playersNeeded = settings.questConfig?.[currentQuestIndex]?.players || questConfig[currentQuestIndex];
+            document.getElementById('requiredPlayers').textContent = playersNeeded;
+
+            // Setup players grid
+            setupPlayersGrid();
+
+            // Update UI based on game sub-phase
+            updateGamePhase();
+        }
+
+        function setupPlayersGrid() {
+            const playersGrid = document.getElementById('playersGrid');
+            const playerOrder = gameData.gameState.playerOrder || [];
+            
+            playersGrid.innerHTML = '';
+
+            playerOrder.forEach(playerId => {
+                const player = gameData.players[playerId];
+                if (!player) return;
+
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player-toggle';
+                playerDiv.textContent = player.name;
+                playerDiv.dataset.playerId = playerId;
+                
+                if (!player.isOnline) {
+                    playerDiv.classList.add('offline');
+                }
+
+                playerDiv.onclick = () => togglePlayerSelection(playerId, playerDiv);
+                playersGrid.appendChild(playerDiv);
+            });
+        }
+
+        function updateGamePhase() {
+            const gameState = gameData.gameState;
+            const subPhase = gameState.subPhase || 'teamSelection';
+
+            // Hide all sections first
+            document.getElementById('teamSelection').style.display = 'none';
+            document.getElementById('teamVoting').classList.add('hidden');
+            document.getElementById('questVoting').classList.add('hidden');
+            document.getElementById('assassinationPhase').classList.add('hidden');
+
+            switch(subPhase) {
+                case 'teamSelection':
+                    showTeamSelection();
+                    break;
+                case 'teamVoting':
+                    showTeamVoting();
+                    break;
+                case 'questVoting':
+                    showQuestVoting();
+                    break;
+                case 'assassination':
+                    showAssassinationPhase();
+                    break;
+            }
+
+            // Update game history
+            updateStatCards();
+        }
+
+        function showTeamSelection() {
+            const gameState = gameData.gameState;
+            const playerOrder = gameState.playerOrder || [];
+            const currentLeaderId = playerOrder[gameState.currentLeaderIndex || 0];
+            const isLeader = currentLeaderId === currentPlayerId;
+
+            document.getElementById('teamSelection').style.display = 'block';
+
+            // Enable/disable player selection based on leadership
+            const playerToggles = document.querySelectorAll('.player-toggle');
+            playerToggles.forEach(toggle => {
+                toggle.classList.toggle('disabled', !isLeader);
+                if (isLeader && gameState.proposedTeam && gameState.proposedTeam.includes(toggle.dataset.playerId)) {
+                    toggle.classList.add('selected');
+                    if (!selectedPlayers.includes(toggle.dataset.playerId)) {
+                        selectedPlayers.push(toggle.dataset.playerId);
+                    }
+                }
+            });
+
+            // Update finalize button
+            const settings = gameData.settings;
+            const currentQuestIndex = (gameState.currentRound || 1) - 1;
+            const playersNeeded = settings.questConfig?.[currentQuestIndex]?.players || questConfigs[playerOrder.length][currentQuestIndex];
+            document.getElementById('finalizeTeamBtn').disabled = !isLeader || selectedPlayers.length !== playersNeeded;
+        }
+
+        function showTeamVoting() {
+            const gameState = gameData.gameState;
+            const proposedTeam = gameState.proposedTeam || [];
+            
+            document.getElementById('teamVoting').classList.remove('hidden');
+
+            // Display proposed team
+            const proposedTeamDiv = document.getElementById('proposedTeam');
+            proposedTeamDiv.innerHTML = '';
+            proposedTeam.forEach(playerId => {
+                const player = gameData.players[playerId];
+                if (player) {
+                    const memberDiv = document.createElement('div');
+                    memberDiv.className = 'team-member';
+                    memberDiv.textContent = player.name;
+                    proposedTeamDiv.appendChild(memberDiv);
+                }
+            });
+
+            // Show voting status
+            updateVotingStatus('team');
+
+            // Enable/disable voting buttons
+            const hasVotedOnTeam = gameState.teamVotes && gameState.teamVotes[currentPlayerId] !== undefined;
+            document.getElementById('approveTeamBtn').disabled = hasVotedOnTeam;
+            document.getElementById('rejectTeamBtn').disabled = hasVotedOnTeam;
+        }
+
+        function showQuestVoting() {
+            const gameState = gameData.gameState;
+            const proposedTeam = gameState.proposedTeam || [];
+            const isTeamMember = proposedTeam.includes(currentPlayerId);
+
+            if (isTeamMember) {
+                document.getElementById('questVoting').classList.remove('hidden');
+            }
+        }
+
+        function showAssassinationPhase() {
+            if (playerRole !== 'Assassin') return;
+
+            document.getElementById('assassinationPhase').classList.remove('hidden');
+            
+            // Show only good players for assassination
+            const assassinationGrid = document.getElementById('assassinationGrid');
+            assassinationGrid.innerHTML = '';
+            
+            gameData.gameState.playerOrder.forEach(playerId => {
+                const role = gameData.playerRoles[playerId];
+                const isGood = ['Merlin', 'Percival', 'Loyal Servant of Arthur'].includes(role);
+                
+                if (isGood) {
+                    const player = gameData.players[playerId];
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'player-toggle good-revealed';
+                    playerDiv.textContent = player.name;
+                    playerDiv.dataset.playerId = playerId;
+                    playerDiv.onclick = () => selectAssassinationTarget(playerId, playerDiv);
+                    assassinationGrid.appendChild(playerDiv);
+                }
+            });
+        }
+
+        function checkForDisconnectedPlayers() {
+            if (!gameData.players || !gameData.gameState) return;
+
+            const playerOrder = gameData.gameState.playerOrder || [];
+            const disconnectedPlayers = playerOrder.filter(playerId => {
+                const player = gameData.players[playerId];
+                return player && !player.isOnline;
+            });
+
+            if (disconnectedPlayers.length > 0 && gameData.game
