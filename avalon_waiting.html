@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avalon - Join Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .waiting-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: #ffd700;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .join-form {
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border: 2px solid #4ecdc4;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(45deg, #45b7b8, #3d9970);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .waiting-message {
+            display: none;
+            background: rgba(78, 205, 196, 0.1);
+            border: 2px solid #4ecdc4;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .waiting-message.show {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 3rem;
+            color: #4ecdc4;
+            margin-bottom: 15px;
+        }
+
+        .players-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .players-count {
+            font-size: 1.2rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .players-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .player-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-item.host {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+        }
+
+        .player-item.offline {
+            opacity: 0.6;
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        .connection-status {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .status-online {
+            background: rgba(78, 205, 196, 0.3);
+            color: #4ecdc4;
+        }
+
+        .status-offline {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #4ecdc4;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            color: #ffcccb;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .reconnecting-message {
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            color: #ffd700;
+            display: none;
+        }
+
+        .reconnecting-message.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .waiting-container {
+                padding: 30px 20px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .players-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="waiting-container">
+        <h1 class="title">Join Avalon Game</h1>
+        
+        <div class="join-form" id="joinForm">
+            <div class="form-group">
+                <label for="playerName">Your Name:</label>
+                <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label for="roomCode">Room Code:</label>
+                <input type="text" id="roomCode" placeholder="Enter 4-digit room code" maxlength="4">
+            </div>
+            
+            <button class="btn btn-primary" id="joinBtn" onclick="joinGame()">Join Game</button>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="reconnecting-message" id="reconnectingMessage">Reconnecting to game...</div>
+        </div>
+
+        <div class="waiting-message" id="waitingMessage">
+            <div class="success-icon">✓</div>
+            <h3 style="color: #4ecdc4; margin-bottom: 10px;">Successfully Joined!</h3>
+            <p>Wait for the host to start the game...</p>
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="players-info" id="playersInfo">
+            <div class="players-count" id="playersCount">Players: 0/5</div>
+            <div class="players-list" id="playersList"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, get, onValue, push, remove, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase configuration (replace with your actual config)
+        const firebaseConfig = {
+            apiKey: "your-api-key-here",
+            authDomain: "your-project-id.firebaseapp.com",
+            databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project-id.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        // Make Firebase available globally
+        window.firebase = {
+            database,
+            auth,
+            ref,
+            set,
+            get,
+            onValue,
+            push,
+            remove,
+            onDisconnect,
+            serverTimestamp,
+            signInAnonymously
+        };
+    </script>
+
+    <script>
+        let currentUser = null;
+        let roomRef = null;
+        let playerRef = null;
+        let roomCode = '';
+        let playerName = '';
+        let isReconnecting = false;
+
+        // Initialize Firebase authentication
+        async function initFirebase() {
+            try {
+                const userCredential = await firebase.signInAnonymously(firebase.auth);
+                currentUser = userCredential.user;
+                console.log('Signed in anonymously');
+                
+                // Check if user is reconnecting
+                checkForReconnection();
+                
+            } catch (error) {
+                console.error('Firebase authentication error:', error);
+                showError('Failed to connect to Firebase. Please refresh the page.');
+            }
+        }
+
+        async function checkForReconnection() {
+            const savedRoomCode = localStorage.getItem('avalonRoomCode');
+            const savedPlayerId = localStorage.getItem('avalonPlayerId');
+            const savedPlayerName = localStorage.getItem('avalonPlayerName');
+
+            if (savedRoomCode && savedPlayerId && savedPlayerName) {
+                // Check if the room still exists and user was in it
+                try {
+                    const roomSnapshot = await firebase.get(firebase.ref(firebase.database, `rooms/${savedRoomCode}`));
+                    const roomData = roomSnapshot.val();
+                    
+                    if (roomData && roomData.players && roomData.players[savedPlayerId]) {
+                        // Show reconnecting message
+                        document.getElementById('reconnectingMessage').classList.add('show');
+                        
+                        // Pre-fill form
+                        document.getElementById('playerName').value = savedPlayerName;
+                        document.getElementById('roomCode').value = savedRoomCode;
+                        
+                        // Auto-rejoin
+                        isReconnecting = true;
+                        await joinExistingGame(savedRoomCode, savedPlayerName, savedPlayerId);
+                    }
+                } catch (error) {
+                    console.log('No existing game to reconnect to');
+                    localStorage.removeItem('avalonRoomCode');
+                    localStorage.removeItem('avalonPlayerId');
+                    localStorage.removeItem('avalonPlayerName');
+                }
+            }
+        }
+
+        async function joinGame() {
+            playerName = document.getElementById('playerName').value.trim();
+            roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+            
+            if (!playerName) {
+                showError('Please enter your name');
+                return;
+            }
+            
+            if (!roomCode || roomCode.length !== 4) {
+                showError('Please enter a valid 4-digit room code');
+                return;
+            }
+
+            if (!currentUser) {
+                showError('Please wait for Firebase to connect');
+                return;
+            }
+
+            document.getElementById('joinBtn').disabled = true;
+            document.getElementById('joinBtn').textContent = 'Joining...';
+
+            try {
+                await joinExistingGame(roomCode, playerName, currentUser.uid);
+            } catch (error) {
+                console.error('Error joining game:', error);
+                showError(error.message || 'Failed to join game');
+                document.getElementById('joinBtn').disabled = false;
+                document.getElementById('joinBtn').textContent = 'Join Game';
+            }
+        }
+
+        async function joinExistingGame(code, name, userId) {
+            // Check if room exists
+            const roomSnapshot = await firebase.get(firebase.ref(firebase.database, `rooms/${code}`));
+            const roomData = roomSnapshot.val();
+            
+            if (!roomData) {
+                throw new Error('Room not found. Please check the room code.');
+            }
+
+            // Check if game has started
+            if (roomData.gameState && roomData.gameState.phase === 'playing') {
+                // Check if this player was already in the game
+                if (roomData.players && roomData.players[userId]) {
+                    // Reconnecting to existing game
+                    await reconnectToGame(code, userId);
+                    return;
+                } else {
+                    throw new Error('Game has already started. Cannot join.');
+                }
+            }
+
+            // Check if room is full
+            const currentPlayers = Object.values(roomData.players || {}).filter(p => p.isOnline);
+            if (currentPlayers.length >= roomData.settings.totalPlayers) {
+                throw new Error('Room is full. Cannot join.');
+            }
+
+            // Check if name is already taken
+            const existingNames = Object.values(roomData.players || {}).map(p => p.name.toLowerCase());
+            if (existingNames.includes(name.toLowerCase())) {
+                throw new Error('Name is already taken. Please choose a different name.');
+            }
+
+            // Add player to room
+            roomRef = firebase.ref(firebase.database, `rooms/${code}`);
+            playerRef = firebase.ref(firebase.database, `rooms/${code}/players/${userId}`);
+
+            const playerData = {
+                name: name,
+                isHost: false,
+                isOnline: true,
+                joinedAt: firebase.serverTimestamp()
+            };
+
+            await firebase.set(playerRef, playerData);
+
+            // Add player to player order
+            const newPlayerOrder = [...(roomData.gameState.playerOrder || []), userId];
+            await firebase.set(firebase.ref(firebase.database, `rooms/${code}/gameState/playerOrder`), newPlayerOrder);
+
+            // Set up disconnect handling
+            firebase.onDisconnect(playerRef).update({ isOnline: false });
+
+            // Save to localStorage
+            localStorage.setItem('avalonRoomCode', code);
+            localStorage.setItem('avalonPlayerId', userId);
+            localStorage.setItem('avalonPlayerName', name);
+
+            // Set up listeners and update UI
+            setupRoomListeners(code);
+            showWaitingState();
+        }
+
+        async function reconnectToGame(code, userId) {
+            roomRef = firebase.ref(firebase.database, `rooms/${code}`);
+            playerRef = firebase.ref(firebase.database, `rooms/${code}/players/${userId}`);
+
+            // Mark player as online
+            await firebase.set(firebase.ref(firebase.database, `rooms/${code}/players/${userId}/isOnline`), true);
+
+            // Set up disconnect handling
+            firebase.onDisconnect(playerRef).update({ isOnline: false });
+
+            // Check if game is in progress
+            const gameStateSnapshot = await firebase.get(firebase.ref(firebase.database, `rooms/${code}/gameState`));
+            const gameState = gameStateSnapshot.val();
+
+            if (gameState && gameState.phase === 'playing') {
+                // Redirect to player page
+                window.location.href = 'player.html';
+            } else {
+                // Show waiting state
+                setupRoomListeners(code);
+                showWaitingState();
+            }
+        }
+
+        function setupRoomListeners(code) {
+            // Listen to players changes
+            const playersRef = firebase.ref(firebase.database, `rooms/${code}/players`);
+            firebase.onValue(playersRef, (snapshot) => {
+                const players = snapshot.val() || {};
+                updatePlayersDisplay(players);
+            });
+
+            // Listen to game state changes
+            const gameStateRef = firebase.ref(firebase.database, `rooms/${code}/gameState`);
+            firebase.onValue(gameStateRef, (snapshot) => {
+                const gameState = snapshot.val();
+                
+                if (gameState && gameState.phase === 'playing') {
+                    // Game started, redirect to player page
+                    window.location.href = 'player.html';
+                }
+            });
+
+            // Listen to room settings for total players count
+            const settingsRef = firebase.ref(firebase.database, `rooms/${code}/settings`);
+            firebase.onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings) {
+                    updatePlayersCount(settings.totalPlayers);
+                }
+            });
+        }
+
+        function updatePlayersDisplay(players) {
+            const playersListDiv = document.getElementById('playersList');
+            const onlinePlayers = Object.values(players).filter(p => p.isOnline);
+            
+            playersListDiv.innerHTML = '';
+            
+            Object.values(players).forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `player-item ${player.isHost ? 'host' : ''} ${!player.isOnline ? 'offline' : ''}`;
+                
+                playerDiv.innerHTML = `
+                    <span>${player.name} ${player.isHost ? '(Host)' : ''}</span>
+                    <span class="connection-status ${player.isOnline ? 'status-online' : 'status-offline'}">
+                        ${player.isOnline ? '●' : '○'}
+                    </span>
+                `;
+                
+                playersListDiv.appendChild(playerDiv);
+            });
+
+            // Update players count
+            const playersCountDiv = document.getElementById('playersCount');
+            const totalPlayers = playersCountDiv.textContent.split('/')[1] || '?';
+            playersCountDiv.textContent = `Players: ${onlinePlayers.length}/${totalPlayers}`;
+        }
+
+        function updatePlayersCount(totalPlayers) {
+            const playersCountDiv = document.getElementById('playersCount');
+            const currentCount = playersCountDiv.textContent.split('/')[0].replace('Players: ', '');
+            playersCountDiv.textContent = `Players: ${currentCount}/${totalPlayers}`;
+        }
+
+        function showWaitingState() {
+            document.getElementById('joinForm').style.display = 'none';
+            document.getElementById('reconnectingMessage').classList.remove('show');
+            document.getElementById('waitingMessage').classList.add('show');
+            document.getElementById('playersInfo').style.display = 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Handle Enter key in input fields
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('playerName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('roomCode').focus();
+                }
+            });
+
+            document.getElementById('roomCode').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    joinGame();
+                }
+            });
+
+            // Auto-uppercase room code
+            document.getElementById('roomCode').addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase();
+            });
+
+            // Initialize Firebase
+            initFirebase();
+        });
+
+        // Make functions globally available
+        window.joinGame = joinGame;
+    </script>
+</body>
+</html>
