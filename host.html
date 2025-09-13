@@ -414,17 +414,15 @@
         import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         // Firebase configuration (replace with your actual config)
-        // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0JNj2A0aS4T5KrOmCLR3xQ7zQoCG8znw",
-    authDomain: "avalon2-924b4.firebaseapp.com",
-    projectId: "avalon2-924b4",
-    storageBucket: "avalon2-924b4.firebasestorage.app",
-    messagingSenderId: "657775886781",
-    appId: "1:657775886781:web:fa914ba639b3ae05a452d4",
-    measurementId: "G-7VNPBZW3XV"
-  };
+        const firebaseConfig = {
+            apiKey: "your-api-key-here",
+            authDomain: "your-project-id.firebaseapp.com",
+            databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project-id.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -902,11 +900,215 @@
             await initFirebase();
         });
 
+                localStorage.setItem('avalonRoomCode', roomCode);
+                localStorage.setItem('avalonPlayerId', currentUser.uid);
+                localStorage.setItem('avalonPlayerName', hostName);
+
+            } catch (error) {
+                console.error('Error creating room:', error);
+                showError('Failed to create room. Please try again.');
+            } finally {
+                document.getElementById('createRoomBtn').disabled = false;
+                document.getElementById('createRoomBtn').textContent = 'Create Room';
+            }
+        }
+
+        function setupRoomListeners() {
+            // Listen to players changes
+            onValue(playersRef, (snapshot) => {
+                const players = snapshot.val() || {};
+                gameState.players = players;
+                
+                const onlinePlayerCount = Object.values(players).filter(p => p.isOnline).length;
+                document.getElementById('playersJoined').textContent = onlinePlayerCount;
+                
+                updatePlayersList();
+                
+                // Show start button if enough players
+                const startBtn = document.getElementById('startGameBtn');
+                if (onlinePlayerCount === gameState.totalPlayers) {
+                    startBtn.classList.remove('hidden');
+                } else {
+                    startBtn.classList.add('hidden');
+                }
+            });
+
+            // Listen to player order changes
+            const gameStateRef = ref(database, `rooms/${gameState.roomCode}/gameState`);
+            onValue(gameStateRef, (snapshot) => {
+                const gameStateData = snapshot.val();
+                if (gameStateData && gameStateData.playerOrder) {
+                    gameState.playerOrder = gameStateData.playerOrder;
+                    updatePlayersList();
+                }
+            });
+        }
+
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+            
+            gameState.playerOrder.forEach((playerId, index) => {
+                const playerData = gameState.players[playerId];
+                if (!playerData) return;
+
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `player-item ${playerData.isOnline ? 'online' : 'offline'}`;
+                playerDiv.draggable = true;
+                playerDiv.dataset.playerId = playerId;
+                
+                playerDiv.innerHTML = `
+                    <span>${index + 1}. ${playerData.name} ${playerData.isHost ? '(Host)' : ''}</span>
+                    <span class="connection-status ${playerData.isOnline ? 'status-online' : 'status-offline'}">
+                        ${playerData.isOnline ? 'Online' : 'Offline'}
+                    </span>
+                `;
+                
+                playerDiv.addEventListener('dragstart', handleDragStart);
+                playerDiv.addEventListener('dragover', handleDragOver);
+                playerDiv.addEventListener('drop', handleDrop);
+                playerDiv.addEventListener('dragend', handleDragEnd);
+                
+                playersList.appendChild(playerDiv);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.playerId);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        async function handleDrop(e) {
+            e.preventDefault();
+            const draggedPlayerId = e.dataTransfer.getData('text/plain');
+            const dropTarget = e.target.closest('.player-item');
+            
+            if (dropTarget && dropTarget.dataset.playerId !== draggedPlayerId) {
+                const draggedIndex = gameState.playerOrder.indexOf(draggedPlayerId);
+                const dropIndex = gameState.playerOrder.indexOf(dropTarget.dataset.playerId);
+                
+                if (draggedIndex !== -1 && dropIndex !== -1) {
+                    // Update player order
+                    const newOrder = [...gameState.playerOrder];
+                    newOrder.splice(draggedIndex, 1);
+                    newOrder.splice(dropIndex, 0, draggedPlayerId);
+                    
+                    // Update in Firebase
+                    await set(ref(database, `rooms/${gameState.roomCode}/gameState/playerOrder`), newOrder);
+                }
+            }
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        async function startGame() {
+            if (!roomRef) return;
+
+            try {
+                document.getElementById('startGameBtn').disabled = true;
+                document.getElementById('startGameBtn').textContent = 'Starting Game...';
+
+                // Assign roles randomly
+                const roles = generateRoles();
+                const playerRoles = {};
+                
+                gameState.playerOrder.forEach((playerId, index) => {
+                    playerRoles[playerId] = roles[index];
+                });
+
+                // Update game state in Firebase
+                const gameStateRef = ref(database, `rooms/${gameState.roomCode}/gameState`);
+                const playerRolesRef = ref(database, `rooms/${gameState.roomCode}/playerRoles`);
+                
+                await set(ref(database, `rooms/${gameState.roomCode}/gameState/phase`), 'playing');
+                await set(ref(database, `rooms/${gameState.roomCode}/gameState/subPhase`), 'teamSelection');
+                await set(playerRolesRef, playerRoles);
+
+                // Redirect to player page
+                window.location.href = 'player.html';
+
+            } catch (error) {
+                console.error('Error starting game:', error);
+                showError('Failed to start game. Please try again.');
+                document.getElementById('startGameBtn').disabled = false;
+                document.getElementById('startGameBtn').textContent = 'Start Game';
+            }
+        }
+
+        function generateRoles() {
+            const roles = [];
+            
+            // Add special characters
+            if (gameState.characters.merlin) roles.push('Merlin');
+            if (gameState.characters.percival) roles.push('Percival');
+            if (gameState.characters.assassin) roles.push('Assassin');
+            if (gameState.characters.mordred) roles.push('Mordred');
+            if (gameState.characters.morgana) roles.push('Morgana');
+            if (gameState.characters.oberon) roles.push('Oberon');
+            
+            // Fill remaining slots
+            const loyalCount = gameState.goodPlayers - (gameState.characters.merlin ? 1 : 0) - (gameState.characters.percival ? 1 : 0);
+            const minionCount = gameState.evilPlayers - Object.keys(gameState.characters).filter(char => 
+                ['assassin', 'mordred', 'morgana', 'oberon'].includes(char) && gameState.characters[char]
+            ).length;
+            
+            for (let i = 0; i < loyalCount; i++) {
+                roles.push('Loyal Servant of Arthur');
+            }
+            for (let i = 0; i < minionCount; i++) {
+                roles.push('Minion of Mordred');
+            }
+            
+            // Shuffle roles
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
+            
+            return roles;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            updatePlayerDistribution();
+            updateQuestSetup();
+            
+            // Check if returning to existing room
+            const existingRoomCode = localStorage.getItem('avalonRoomCode');
+            const existingPlayerId = localStorage.getItem('avalonPlayerId');
+            
+            if (existingRoomCode && existingPlayerId) {
+                // User might be returning from a game
+                document.getElementById('hostName').value = localStorage.getItem('avalonPlayerName') || '';
+            }
+            
+            // Initialize Firebase
+            await initFirebase();
+        });
+
         // Make functions globally available
         window.toggleCharacter = toggleCharacter;
         window.createRoom = createRoom;
         window.startGame = startGame;
         window.updateQuestConfig = updateQuestConfig;
     </script>
+</body>
+</html>
 </body>
 </html>
