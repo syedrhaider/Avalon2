@@ -1,1030 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Avalon - Host Game</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Georgia', serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            color: #f0f0f0;
-            padding: 20px;
-        }
-
-        .host-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .title {
-            font-size: 2.5rem;
-            text-align: center;
-            color: #ffd700;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-        }
-
-        .form-section {
-            margin-bottom: 25px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #ffd700;
-            font-weight: bold;
-        }
-
-        input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 16px;
-        }
-
-        input[type="text"]::placeholder, input[type="number"]::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .quest-setup {
-            display: none;
-        }
-
-        .quest-round {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .character-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .character-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .character-toggle:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .character-toggle.active {
-            background: rgba(78, 205, 196, 0.3);
-            border: 2px solid #4ecdc4;
-        }
-
-        .character-toggle.inactive {
-            background: rgba(255, 107, 107, 0.3);
-            border: 2px solid #ff6b6b;
-        }
-
-        .character-toggle.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: rgba(128, 128, 128, 0.2);
-        }
-
-        .toggle-switch {
-            width: 50px;
-            height: 25px;
-            background: #ccc;
-            border-radius: 15px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .toggle-switch.active {
-            background: #4ecdc4;
-        }
-
-        .toggle-slider {
-            width: 21px;
-            height: 21px;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.3s;
-        }
-
-        .toggle-switch.active .toggle-slider {
-            transform: translateX(25px);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(45deg, #45b7b8, #3d9970);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(45deg, #ff5252, #e53e3e);
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .room-info {
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid #ffd700;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .room-code {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #ffd700;
-            margin-bottom: 10px;
-        }
-
-        .players-list {
-            margin-top: 20px;
-        }
-
-        .player-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: grab;
-        }
-
-        .player-item:active {
-            cursor: grabbing;
-        }
-
-        .player-item.dragging {
-            opacity: 0.5;
-        }
-
-        .player-item.online {
-            border-left: 4px solid #4ecdc4;
-        }
-
-        .player-item.offline {
-            border-left: 4px solid #ff6b6b;
-            opacity: 0.7;
-        }
-
-        .connection-status {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .status-online {
-            background: rgba(78, 205, 196, 0.3);
-            color: #4ecdc4;
-        }
-
-        .status-offline {
-            background: rgba(255, 107, 107, 0.3);
-            color: #ff6b6b;
-        }
-
-        .error-message {
-            background: rgba(255, 107, 107, 0.2);
-            border: 2px solid #ff6b6b;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            color: #ffcccb;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .connection-status-indicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 1000;
-        }
-
-        .connection-connecting {
-            background: rgba(255, 165, 0, 0.9);
-            color: #fff;
-        }
-
-        .connection-connected {
-            background: rgba(78, 205, 196, 0.9);
-            color: #fff;
-        }
-
-        .connection-error {
-            background: rgba(255, 107, 107, 0.9);
-            color: #fff;
-        }
-
-        @media (max-width: 768px) {
-            .host-container {
-                padding: 20px;
-            }
-            
-            .title {
-                font-size: 2rem;
-            }
-            
-            .character-section {
-                grid-template-columns: 1fr;
-            }
-            
-            .quest-round {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avalon - Host Game</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Georgia',serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);min-height:100vh;color:#f0f0f0;padding:20px}
+.host-container{max-width:1000px;margin:0 auto;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);border-radius:20px;padding:30px;box-shadow:0 20px 40px rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2)}
+.title{font-size:2.5rem;text-align:center;color:#ffd700;margin-bottom:30px;text-shadow:2px 2px 4px rgba(0,0,0,.7)}
+.form-section{margin-bottom:25px;background:rgba(255,255,255,.05);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,.1)}
+.form-group{margin-bottom:15px}
+label{display:block;margin-bottom:5px;color:#ffd700;font-weight:bold}
+input[type="text"],input[type="number"]{width:100%;padding:10px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:rgba(255,255,255,.1);color:white;font-size:16px}
+input[type="text"]::placeholder,input[type="number"]::placeholder{color:rgba(255,255,255,.6)}
+.quest-setup{display:none}
+.quest-round{display:flex;align-items:center;gap:15px;margin-bottom:10px;flex-wrap:wrap}
+.character-section{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:15px}
+.character-toggle{display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.1);border-radius:8px;cursor:pointer;transition:all .3s ease}
+.character-toggle:hover{background:rgba(255,255,255,.2)}
+.character-toggle.active{background:rgba(78,205,196,.3);border:2px solid #4ecdc4}
+.character-toggle.inactive{background:rgba(255,107,107,.3);border:2px solid #ff6b6b}
+.character-toggle.disabled{opacity:.5;cursor:not-allowed;background:rgba(128,128,128,.2)}
+.toggle-switch{width:50px;height:25px;background:#ccc;border-radius:15px;position:relative;cursor:pointer;transition:background .3s}
+.toggle-switch.active{background:#4ecdc4}
+.toggle-slider{width:21px;height:21px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .3s}
+.toggle-switch.active .toggle-slider{transform:translateX(25px)}
+.action-buttons{display:flex;gap:15px;margin-top:30px;flex-wrap:wrap}
+.btn{padding:12px 25px;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;transition:all .3s ease}
+.btn-primary{background:linear-gradient(45deg,#4ecdc4,#44a08d);color:white}
+.btn-primary:hover{background:linear-gradient(45deg,#45b7b8,#3d9970);transform:translateY(-2px)}
+.btn-secondary{background:linear-gradient(45deg,#ff6b6b,#ee5a6f);color:white}
+.btn-secondary:hover{background:linear-gradient(45deg,#ff5252,#e53e3e);transform:translateY(-2px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.room-info{background:rgba(255,215,0,.1);border:2px solid #ffd700;border-radius:12px;padding:20px;margin-top:20px;text-align:center}
+.room-code{font-size:2rem;font-weight:bold;color:#ffd700;margin-bottom:10px}
+.players-list{margin-top:20px}
+.player-item{background:rgba(255,255,255,.1);padding:10px;margin:5px 0;border-radius:8px;display:flex;justify-content:space-between;align-items:center;cursor:grab}
+.player-item:active{cursor:grabbing}
+.player-item.dragging{opacity:.5}
+.player-item.online{border-left:4px solid #4ecdc4}
+.player-item.offline{border-left:4px solid #ff6b6b;opacity:.7}
+.connection-status{font-size:12px;padding:4px 8px;border-radius:4px}
+.status-online{background:rgba(78,205,196,.3);color:#4ecdc4}
+.status-offline{background:rgba(255,107,107,.3);color:#ff6b6b}
+.error-message{background:rgba(255,107,107,.2);border:2px solid #ff6b6b;border-radius:8px;padding:15px;margin-top:15px;color:#ffcccb;display:none}
+.error-message.show{display:block}
+.loading{opacity:.6;pointer-events:none}
+.hidden{display:none}
+@media(max-width:768px){.host-container{padding:20px}.title{font-size:2rem}.character-section{grid-template-columns:1fr}.quest-round{flex-direction:column;align-items:stretch}}
+</style>
 </head>
 <body>
-    <div class="connection-status-indicator" id="connectionStatus">Connecting...</div>
-    
-    <div class="host-container">
-        <h1 class="title">Host Avalon Game</h1>
-        
-        <div class="form-section">
-            <div class="form-group">
-                <label for="hostName">Host's Name:</label>
-                <input type="text" id="hostName" placeholder="Enter your name" maxlength="20">
-            </div>
-            
-            <div class="form-group">
-                <label for="totalQuests">Total Number of Quests (must be odd):</label>
-                <input type="number" id="totalQuests" min="3" max="7" step="2" value="5">
-            </div>
-            
-            <div class="quest-setup" id="questSetup">
-                <h3 style="color: #ffd700; margin-bottom: 15px;">Quest Configuration</h3>
-                <div id="questRounds"></div>
-            </div>
-            
-            <div class="form-group">
-                <label for="totalPlayers">Total Number of Players:</label>
-                <input type="number" id="totalPlayers" min="5" max="10" value="5">
-            </div>
-        </div>
-
-        <div class="form-section">
-            <div class="form-group">
-                <label for="goodPlayers">Number of Good Players:</label>
-                <input type="number" id="goodPlayers" min="2" max="6" readonly>
-            </div>
-            
-            <h4 style="color: #4ecdc4; margin-bottom: 10px;">Good Characters</h4>
-            <div class="character-section" id="goodCharacters">
-                <div class="character-toggle" data-character="merlin">
-                    <div class="toggle-switch" onclick="toggleCharacter(this, 'merlin')">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Merlin</span>
-                </div>
-                <div class="character-toggle" data-character="percival">
-                    <div class="toggle-switch" onclick="toggleCharacter(this, 'percival')">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Percival</span>
-                </div>
-            </div>
-            <div id="loyalServants"></div>
-        </div>
-
-        <div class="form-section">
-            <div class="form-group">
-                <label for="evilPlayers">Number of Evil Players:</label>
-                <input type="number" id="evilPlayers" min="2" max="4" readonly>
-            </div>
-            
-            <h4 style="color: #ff6b6b; margin-bottom: 10px;">Evil Characters</h4>
-            <div class="character-section" id="evilCharacters">
-                <div class="character-toggle" data-character="assassin">
-                    <div class="toggle-switch" onclick="toggleCharacter(this, 'assassin')">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Assassin</span>
-                </div>
-                <div class="character-toggle" data-character="mordred">
-                    <div class="toggle-switch" onclick="toggleCharacter(this, 'mordred')">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Mordred</span>
-                </div>
-                <div class="character-toggle" data-character="morgana">
-                    <div class="toggle-switch" onclick="toggleCharacter(this, 'morgana')">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Morgana</span>
-                </div>
-                <div class="character-toggle" data-character="oberon">
-                    <div class="toggle-switch" onclick="toggleCharacter(this, 'oberon')">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Oberon</span>
-                </div>
-            </div>
-            <div id="evilMinions"></div>
-        </div>
-
-        <div class="action-buttons">
-            <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()" disabled>
-                Connecting to Firebase...
-            </button>
-        </div>
-
-        <div class="error-message" id="errorMessage"></div>
-
-        <div class="room-info hidden" id="roomInfo">
-            <div class="room-code" id="roomCode">Room Code: XXXX</div>
-            <div>Players Joined: <span id="playersJoined">0</span>/<span id="totalPlayersSpan">5</span></div>
-            
-            <div class="players-list">
-                <h4 style="color: #ffd700; margin-bottom: 10px;">Player Order (Drag to Rearrange)</h4>
-                <div id="playersList"></div>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn btn-secondary hidden" id="startGameBtn" onclick="startGame()">Start Game</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, get, onValue, push, remove, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCm1G9QC7mK1dlxannirjWc5pt6L9ByY3Q",
-            authDomain: "avalon-game-60c31.firebaseapp.com",
-            databaseURL: "https://avalon-game-60c31-default-rtdb.firebaseio.com",
-            projectId: "avalon-game-60c31",
-            storageBucket: "avalon-game-60c31.firebasestorage.app",
-            messagingSenderId: "557611279761",
-            appId: "1:557611279761:web:74145f94c434de13812630",
-            measurementId: "G-F10Q4HW1C3"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        const auth = getAuth(app);
-
-        // Make Firebase available globally
-        window.firebase = {
-            database,
-            auth,
-            ref,
-            set,
-            get,
-            onValue,
-            push,
-            remove,
-            onDisconnect,
-            serverTimestamp,
-            signInAnonymously
-        };
-
-        // Initialize Firebase and set up authentication state listener
-        window.initializeFirebase = async function() {
-            const statusIndicator = document.getElementById('connectionStatus');
-            const createBtn = document.getElementById('createRoomBtn');
-            
-            try {
-                statusIndicator.textContent = 'Connecting...';
-                statusIndicator.className = 'connection-status-indicator connection-connecting';
-                
-                console.log('Starting Firebase initialization...');
-                console.log('Firebase config:', {
-                    authDomain: firebaseConfig.authDomain,
-                    databaseURL: firebaseConfig.databaseURL,
-                    projectId: firebaseConfig.projectId
-                });
-                
-                // Test database connection first
-                statusIndicator.textContent = 'Testing database...';
-                const testRef = ref(database, '.info/connected');
-                
-                // Wait for database connection
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        reject(new Error('Database connection timeout'));
-                    }, 10000); // 10 second timeout
-                    
-                    const unsubscribe = onValue(testRef, (snapshot) => {
-                        clearTimeout(timeout);
-                        unsubscribe();
-                        
-                        if (snapshot.val() === true) {
-                            console.log('Database connected successfully');
-                            resolve();
-                        } else {
-                            reject(new Error('Database not connected'));
-                        }
-                    }, (error) => {
-                        clearTimeout(timeout);
-                        unsubscribe();
-                        reject(error);
-                    });
-                });
-                
-                // Now try authentication
-                statusIndicator.textContent = 'Authenticating...';
-                console.log('Starting anonymous authentication...');
-                
-                const userCredential = await signInAnonymously(auth);
-                window.currentUser = userCredential.user;
-                
-                console.log('Firebase connected successfully, user ID:', window.currentUser.uid);
-                statusIndicator.textContent = 'Connected';
-                statusIndicator.className = 'connection-status-indicator connection-connected';
-                
-                // Enable the create room button
-                createBtn.disabled = false;
-                createBtn.textContent = 'Create Room';
-                
-                // Hide status indicator after 3 seconds
-                setTimeout(() => {
-                    statusIndicator.style.display = 'none';
-                }, 3000);
-                
-                return true;
-                
-            } catch (error) {
-                console.error('Firebase connection error details:', {
-                    message: error.message,
-                    code: error.code,
-                    stack: error.stack
-                });
-                
-                let errorMessage = 'Connection failed: ';
-                
-                if (error.code === 'auth/network-request-failed') {
-                    errorMessage += 'Network error. Check your internet connection.';
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage += 'Too many requests. Please wait and try again.';
-                } else if (error.message.includes('timeout')) {
-                    errorMessage += 'Connection timeout. Please check your network.';
-                } else if (error.message.includes('Database not connected')) {
-                    errorMessage += 'Cannot connect to Firebase database.';
-                } else {
-                    errorMessage += error.message || 'Unknown error occurred.';
-                }
-                
-                statusIndicator.textContent = 'Connection Failed';
-                statusIndicator.className = 'connection-status-indicator connection-error';
-                
-                createBtn.textContent = 'Connection Failed - Click to Retry';
-                createBtn.onclick = () => {
-                    createBtn.textContent = 'Retrying...';
-                    createBtn.disabled = true;
-                    window.initializeFirebase();
-                };
-                createBtn.disabled = false;
-                
-                window.showError(errorMessage);
-                return false;
-            }
-        };
-    </script>
-
-    <script>
-        let gameState = {
-            hostName: '',
-            totalQuests: 5,
-            questConfig: [],
-            totalPlayers: 5,
-            goodPlayers: 3,
-            evilPlayers: 2,
-            characters: {
-                merlin: false,
-                percival: false,
-                assassin: false,
-                mordred: false,
-                morgana: false,
-                oberon: false
-            },
-            roomCode: '',
-            players: {},
-            playerOrder: []
-        };
-
-        const playerDistribution = {
-            5: {good: 3, evil: 2},
-            6: {good: 4, evil: 2},
-            7: {good: 4, evil: 3},
-            8: {good: 5, evil: 3},
-            9: {good: 6, evil: 3},
-            10: {good: 6, evil: 4}
-        };
-
-        let roomRef = null;
-        let playersRef = null;
-
-        document.getElementById('totalQuests').addEventListener('change', updateQuestSetup);
-        document.getElementById('totalPlayers').addEventListener('change', updatePlayerDistribution);
-
-        function updateQuestSetup() {
-            const totalQuests = parseInt(document.getElementById('totalQuests').value);
-            const questSetup = document.getElementById('questSetup');
-            const questRounds = document.getElementById('questRounds');
-            
-            if (totalQuests % 2 === 0) {
-                document.getElementById('totalQuests').value = totalQuests + 1;
-                return;
-            }
-            
-            questSetup.style.display = 'block';
-            questRounds.innerHTML = '';
-            gameState.questConfig = [];
-            
-            for (let i = 1; i <= totalQuests; i++) {
-                const questDiv = document.createElement('div');
-                questDiv.className = 'quest-round';
-                questDiv.innerHTML = `
-                    <label>Quest ${i}:</label>
-                    <input type="number" placeholder="Players needed" min="2" max="5" value="2" onchange="updateQuestConfig(${i-1}, 'players', this.value)">
-                    <input type="number" placeholder="Rejects needed to fail" min="1" max="3" value="1" onchange="updateQuestConfig(${i-1}, 'rejects', this.value)">
-                `;
-                questRounds.appendChild(questDiv);
-                gameState.questConfig.push({players: 2, rejects: 1});
-            }
-        }
-
-        function updateQuestConfig(index, property, value) {
-            gameState.questConfig[index][property] = parseInt(value);
-        }
-
-        function updatePlayerDistribution() {
-            const totalPlayers = parseInt(document.getElementById('totalPlayers').value);
-            const distribution = playerDistribution[totalPlayers];
-            
-            document.getElementById('goodPlayers').value = distribution.good;
-            document.getElementById('evilPlayers').value = distribution.evil;
-            document.getElementById('totalPlayersSpan').textContent = totalPlayers;
-            
-            gameState.totalPlayers = totalPlayers;
-            gameState.goodPlayers = distribution.good;
-            gameState.evilPlayers = distribution.evil;
-            
-            updateCharacterCounts();
-        }
-
-        function updateCharacterCounts() {
-            updateLoyalServants();
-            updateEvilMinions();
-        }
-
-        function updateLoyalServants() {
-            const specialGood = Object.keys(gameState.characters).filter(char => 
-                (char === 'merlin' || char === 'percival') && gameState.characters[char]
-            ).length;
-            const loyalCount = gameState.goodPlayers - specialGood;
-            
-            const loyalContainer = document.getElementById('loyalServants');
-            loyalContainer.innerHTML = '';
-            
-            for (let i = 0; i < loyalCount; i++) {
-                const loyalDiv = document.createElement('div');
-                loyalDiv.className = 'character-toggle disabled';
-                loyalDiv.innerHTML = `
-                    <div class="toggle-switch">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Loyal Servant of Arthur ${i + 1}</span>
-                `;
-                loyalContainer.appendChild(loyalDiv);
-            }
-        }
-
-        function updateEvilMinions() {
-            const specialEvil = Object.keys(gameState.characters).filter(char => 
-                ['assassin', 'mordred', 'morgana', 'oberon'].includes(char) && gameState.characters[char]
-            ).length;
-            const minionCount = gameState.evilPlayers - specialEvil;
-            
-            const minionContainer = document.getElementById('evilMinions');
-            minionContainer.innerHTML = '';
-            
-            for (let i = 0; i < minionCount; i++) {
-                const minionDiv = document.createElement('div');
-                minionDiv.className = 'character-toggle disabled';
-                minionDiv.innerHTML = `
-                    <div class="toggle-switch">
-                        <div class="toggle-slider"></div>
-                    </div>
-                    <span>Minion of Mordred ${i + 1}</span>
-                `;
-                minionContainer.appendChild(minionDiv);
-            }
-        }
-
-        function toggleCharacter(toggleElement, character) {
-            const isActive = toggleElement.classList.contains('active');
-            const characterToggle = toggleElement.parentElement;
-            
-            if (isActive) {
-                toggleElement.classList.remove('active');
-                characterToggle.classList.remove('active');
-                characterToggle.classList.add('inactive');
-                gameState.characters[character] = false;
-            } else {
-                toggleElement.classList.add('active');
-                characterToggle.classList.remove('inactive');
-                characterToggle.classList.add('active');
-                gameState.characters[character] = true;
-            }
-            
-            updateCharacterCounts();
-        }
-
-        async function createRoom() {
-            const hostName = document.getElementById('hostName').value.trim();
-            if (!hostName) {
-                showError('Please enter your name');
-                return;
-            }
-
-            if (!window.currentUser) {
-                showError('Firebase is not connected. Please wait and try again.');
-                return;
-            }
-
-            const createBtn = document.getElementById('createRoomBtn');
-            createBtn.disabled = true;
-            createBtn.textContent = 'Creating Room...';
-
-            try {
-                // Check existing room count
-                const roomsSnapshot = await firebase.get(firebase.ref(firebase.database, 'rooms'));
-                const existingRooms = roomsSnapshot.val() || {};
-                
-                if (Object.keys(existingRooms).length >= 5) {
-                    showError('Maximum number of rooms (5) reached. Please try again later.');
-                    return;
-                }
-
-                // Generate unique room code
-                let roomCode;
-                let attempts = 0;
-                do {
-                    roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-                    attempts++;
-                } while (existingRooms[roomCode] && attempts < 10);
-
-                if (attempts >= 10) {
-                    showError('Failed to generate unique room code. Please try again.');
-                    return;
-                }
-
-                gameState.hostName = hostName;
-                gameState.roomCode = roomCode;
-
-                // Create room in Firebase
-                roomRef = firebase.ref(firebase.database, `rooms/${roomCode}`);
-                playersRef = firebase.ref(firebase.database, `rooms/${roomCode}/players`);
-
-                const roomData = {
-                    settings: {
-                        hostName: hostName,
-                        hostId: window.currentUser.uid,
-                        totalQuests: gameState.totalQuests,
-                        questConfig: gameState.questConfig,
-                        totalPlayers: gameState.totalPlayers,
-                        goodPlayers: gameState.goodPlayers,
-                        evilPlayers: gameState.evilPlayers,
-                        characters: gameState.characters,
-                        createdAt: firebase.serverTimestamp()
-                    },
-                    players: {
-                        [window.currentUser.uid]: {
-                            name: hostName,
-                            isHost: true,
-                            isOnline: true,
-                            joinedAt: firebase.serverTimestamp()
-                        }
-                    },
-                    gameState: {
-                        phase: 'waiting',
-                        currentRound: 1,
-                        currentLeaderIndex: 0,
-                        playerOrder: [window.currentUser.uid]
-                    }
-                };
-
-                await firebase.set(roomRef, roomData);
-
-                // Set up disconnect handling
-                const playerRef = firebase.ref(firebase.database, `rooms/${roomCode}/players/${window.currentUser.uid}`);
-                firebase.onDisconnect(playerRef).update({ isOnline: false });
-
-                // Set up real-time listeners
-                setupRoomListeners();
-
-                // Update UI
-                document.getElementById('roomCode').textContent = `Room Code: ${roomCode}`;
-                document.getElementById('roomInfo').classList.remove('hidden');
-
-                console.log('Room created successfully:', roomCode);
-
-            } catch (error) {
-                console.error('Error creating room:', error);
-                showError('Failed to create room. Please try again.');
-            } finally {
-                createBtn.disabled = false;
-                createBtn.textContent = 'Create Room';
-            }
-        }
-
-        function setupRoomListeners() {
-            // Listen to players changes
-            firebase.onValue(playersRef, (snapshot) => {
-                const players = snapshot.val() || {};
-                gameState.players = players;
-                
-                const onlinePlayerCount = Object.values(players).filter(p => p.isOnline).length;
-                document.getElementById('playersJoined').textContent = onlinePlayerCount;
-                
-                updatePlayersList();
-                
-                // Show start button if enough players
-                const startBtn = document.getElementById('startGameBtn');
-                if (onlinePlayerCount === gameState.totalPlayers) {
-                    startBtn.classList.remove('hidden');
-                } else {
-                    startBtn.classList.add('hidden');
-                }
-            });
-
-            // Listen to player order changes
-            const gameStateRef = firebase.ref(firebase.database, `rooms/${gameState.roomCode}/gameState`);
-            firebase.onValue(gameStateRef, (snapshot) => {
-                const gameStateData = snapshot.val();
-                if (gameStateData && gameStateData.playerOrder) {
-                    gameState.playerOrder = gameStateData.playerOrder;
-                    updatePlayersList();
-                }
-            });
-        }
-
-        function updatePlayersList() {
-            const playersList = document.getElementById('playersList');
-            playersList.innerHTML = '';
-            
-            gameState.playerOrder.forEach((playerId, index) => {
-                const playerData = gameState.players[playerId];
-                if (!playerData) return;
-
-                const playerDiv = document.createElement('div');
-                playerDiv.className = `player-item ${playerData.isOnline ? 'online' : 'offline'}`;
-                playerDiv.draggable = true;
-                playerDiv.dataset.playerId = playerId;
-                
-                playerDiv.innerHTML = `
-                    <span>${index + 1}. ${playerData.name} ${playerData.isHost ? '(Host)' : ''}</span>
-                    <span class="connection-status ${playerData.isOnline ? 'status-online' : 'status-offline'}">
-                        ${playerData.isOnline ? 'Online' : 'Offline'}
-                    </span>
-                `;
-                
-                playerDiv.addEventListener('dragstart', handleDragStart);
-                playerDiv.addEventListener('dragover', handleDragOver);
-                playerDiv.addEventListener('drop', handleDrop);
-                playerDiv.addEventListener('dragend', handleDragEnd);
-                
-                playersList.appendChild(playerDiv);
-            });
-        }
-
-        function handleDragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.dataset.playerId);
-            e.target.classList.add('dragging');
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-        }
-
-        async function handleDrop(e) {
-            e.preventDefault();
-            const draggedPlayerId = e.dataTransfer.getData('text/plain');
-            const dropTarget = e.target.closest('.player-item');
-            
-            if (dropTarget && dropTarget.dataset.playerId !== draggedPlayerId) {
-                const draggedIndex = gameState.playerOrder.indexOf(draggedPlayerId);
-                const dropIndex = gameState.playerOrder.indexOf(dropTarget.dataset.playerId);
-                
-                if (draggedIndex !== -1 && dropIndex !== -1) {
-                    // Update player order
-                    const newOrder = [...gameState.playerOrder];
-                    newOrder.splice(draggedIndex, 1);
-                    newOrder.splice(dropIndex, 0, draggedPlayerId);
-                    
-                    // Update in Firebase
-                    await firebase.set(firebase.ref(firebase.database, `rooms/${gameState.roomCode}/gameState/playerOrder`), newOrder);
-                }
-            }
-        }
-
-        function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
-        }
-
-        async function startGame() {
-            if (!roomRef) return;
-
-            try {
-                const startBtn = document.getElementById('startGameBtn');
-                startBtn.disabled = true;
-                startBtn.textContent = 'Starting Game...';
-
-                // Assign roles randomly
-                const roles = generateRoles();
-                const playerRoles = {};
-                
-                gameState.playerOrder.forEach((playerId, index) => {
-                    playerRoles[playerId] = roles[index];
-                });
-
-                // Update game state in Firebase
-                const updates = {};
-                updates[`rooms/${gameState.roomCode}/gameState/phase`] = 'playing';
-                updates[`rooms/${gameState.roomCode}/gameState/currentRound`] = 1;
-                updates[`rooms/${gameState.roomCode}/gameState/currentLeaderIndex`] = 0;
-                updates[`rooms/${gameState.roomCode}/playerRoles`] = playerRoles;
-                updates[`rooms/${gameState.roomCode}/gameState/startedAt`] = firebase.serverTimestamp();
-
-                await firebase.set(firebase.ref(firebase.database), updates);
-
-                // Redirect to player page
-                window.location.href = 'player.html';
-
-            } catch (error) {
-                console.error('Error starting game:', error);
-                showError('Failed to start game. Please try again.');
-                const startBtn = document.getElementById('startGameBtn');
-                startBtn.disabled = false;
-                startBtn.textContent = 'Start Game';
-            }
-        }
-
-        function generateRoles() {
-            const roles = [];
-            
-            // Add special characters
-            if (gameState.characters.merlin) roles.push('Merlin');
-            if (gameState.characters.percival) roles.push('Percival');
-            if (gameState.characters.assassin) roles.push('Assassin');
-            if (gameState.characters.mordred) roles.push('Mordred');
-            if (gameState.characters.morgana) roles.push('Morgana');
-            if (gameState.characters.oberon) roles.push('Oberon');
-            
-            // Fill remaining slots
-            const loyalCount = gameState.goodPlayers - (gameState.characters.merlin ? 1 : 0) - (gameState.characters.percival ? 1 : 0);
-            const minionCount = gameState.evilPlayers - Object.keys(gameState.characters).filter(char => 
-                ['assassin', 'mordred', 'morgana', 'oberon'].includes(char) && gameState.characters[char]
-            ).length;
-            
-            for (let i = 0; i < loyalCount; i++) {
-                roles.push('Loyal Servant of Arthur');
-            }
-            for (let i = 0; i < minionCount; i++) {
-                roles.push('Minion of Mordred');
-            }
-            
-            // Shuffle roles
-            for (let i = roles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [roles[i], roles[j]] = [roles[j], roles[i]];
-            }
-            
-            return roles;
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-            
-            setTimeout(() => {
-                errorDiv.classList.remove('show');
-            }, 5000);
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            updatePlayerDistribution();
-            updateQuestSetup();
-            
-            // Check if returning to existing room
-            const existingRoomCode = localStorage.getItem('avalonRoomCode');
-            const existingPlayerId = localStorage.getItem('avalonPlayerId');
-            
-            if (existingRoomCode && existingPlayerId) {
-                // User might be returning from a game
-                document.getElementById('hostName').value = localStorage.getItem('avalonPlayerName') || '';
-            }
-            
-            // Initialize Firebase
-            await window.initializeFirebase();
-        });
-
-        // Make functions globally available
-        window.toggleCharacter = toggleCharacter;
-        window.createRoom = createRoom;
-        window.startGame = startGame;
-        window.updateQuestConfig = updateQuestConfig;
-        window.showError = showError;
-    </script>
+<div class="host-container">
+<h1 class="title">Host Avalon Game</h1>
+<div class="form-section">
+<div class="form-group"><label for="hostName">Host's Name:</label><input type="text" id="hostName" placeholder="Enter your name" maxlength="20"></div>
+<div class="form-group"><label for="totalQuests">Total Number of Quests (must be odd):</label><input type="number" id="totalQuests" min="3" max="7" step="2" value="5"></div>
+<div class="quest-setup" id="questSetup"><h3 style="color:#ffd700;margin-bottom:15px;">Quest Configuration</h3><div id="questRounds"></div></div>
+<div class="form-group"><label for="totalPlayers">Total Number of Players:</label><input type="number" id="totalPlayers" min="5" max="10" value="5"></div>
+</div>
+<div class="form-section">
+<div class="form-group"><label for="goodPlayers">Number of Good Players:</label><input type="number" id="goodPlayers" min="2" max="6" readonly></div>
+<h4 style="color:#4ecdc4;margin-bottom:10px;">Good Characters</h4>
+<div class="character-section" id="goodCharacters">
+<div class="character-toggle" data-character="merlin"><div class="toggle-switch" onclick="toggleCharacter(this,'merlin')"><div class="toggle-slider"></div></div><span>Merlin</span></div>
+<div class="character-toggle" data-character="percival"><div class="toggle-switch" onclick="toggleCharacter(this,'percival')"><div class="toggle-slider"></div></div><span>Percival</span></div>
+</div>
+<div id="loyalServants"></div>
+</div>
+<div class="form-section">
+<div class="form-group"><label for="evilPlayers">Number of Evil Players:</label><input type="number" id="evilPlayers" min="2" max="4" readonly></div>
+<h4 style="color:#ff6b6b;margin-bottom:10px;">Evil Characters</h4>
+<div class="character-section" id="evilCharacters">
+<div class="character-toggle" data-character="assassin"><div class="toggle-switch" onclick="toggleCharacter(this,'assassin')"><div class="toggle-slider"></div></div><span>Assassin</span></div>
+<div class="character-toggle" data-character="mordred"><div class="toggle-switch" onclick="toggleCharacter(this,'mordred')"><div class="toggle-slider"></div></div><span>Mordred</span></div>
+<div class="character-toggle" data-character="morgana"><div class="toggle-switch" onclick="toggleCharacter(this,'morgana')"><div class="toggle-slider"></div></div><span>Morgana</span></div>
+<div class="character-toggle" data-character="oberon"><div class="toggle-switch" onclick="toggleCharacter(this,'oberon')"><div class="toggle-slider"></div></div><span>Oberon</span></div>
+</div>
+<div id="evilMinions"></div>
+</div>
+<div class="action-buttons"><button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">Create Room</button></div>
+<div class="error-message" id="errorMessage"></div>
+<div class="room-info hidden" id="roomInfo">
+<div class="room-code" id="roomCode">Room Code: XXXX</div>
+<div>Players Joined: <span id="playersJoined">0</span>/<span id="totalPlayersSpan">5</span></div>
+<div class="players-list"><h4 style="color:#ffd700;margin-bottom:10px;">Player Order (Drag to Rearrange)</h4><div id="playersList"></div></div>
+<div class="action-buttons"><button class="btn btn-secondary hidden" id="startGameBtn" onclick="startGame()">Start Game</button></div>
+</div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, set, get, onValue, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+const firebaseConfig = {apiKey:"AIzaSyC2ftCc15TGgU7xZA6w0lk91Zh_BGrq-Nw",authDomain:"avalongame2-cce7d.firebaseapp.com",databaseURL:"https://avalongame2-cce7d-default-rtdb.firebaseio.com",projectId:"avalongame2-cce7d",storageBucket:"avalongame2-cce7d.firebasestorage.app",messagingSenderId:"38095531354",appId:"1:38095531354:web:c29837d5c9fea651ac5763",measurementId:"G-BQBEPTC8YE"};
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const auth = getAuth(app);
+window.firebase={database,auth,ref,set,get,onValue,onDisconnect,serverTimestamp,signInAnonymously};
+let gameState={hostName:'',totalQuests:5,questConfig:[],totalPlayers:5,goodPlayers:3,evilPlayers:2,characters:{merlin:false,percival:false,assassin:false,mordred:false,morgana:false,oberon:false},roomCode:'',players:{},playerOrder:[]};
+const playerDistribution={5:{good:3,evil:2},6:{good:4,evil:2},7:{good:4,evil:3},8:{good:5,evil:3},9:{good:6,evil:3},10:{good:6,evil:4}};
+let currentUser=null,roomRef=null,playersRef=null;
+async function initFirebase(){try{const u=await firebase.signInAnonymously(firebase.auth);currentUser=u.user}catch(e){console.error(e);showError('Failed to connect to Firebase. Please refresh the page.')}}
+document.getElementById('totalQuests').addEventListener('change',updateQuestSetup);
+document.getElementById('totalPlayers').addEventListener('change',updatePlayerDistribution);
+function updateQuestSetup(){const t=parseInt(document.getElementById('totalQuests').value);if(t%2===0){document.getElementById('totalQuests').value=t+1;return;}const q=document.getElementById('questSetup');const r=document.getElementById('questRounds');q.style.display='block';r.innerHTML='';gameState.questConfig=[];for(let i=1;i<=t;i++){const d=document.createElement('div');d.className='quest-round';d.innerHTML=`<label>Quest ${i}:</label><input type="number" placeholder="Players needed" min="2" max="5" value="2" onchange="updateQuestConfig(${i-1},'players',this.value)"><input type="number" placeholder="Rejects needed to fail" min="1" max="3" value="1" onchange="updateQuestConfig(${i-1},'rejects',this.value)">`;r.appendChild(d);gameState.questConfig.push({players:2,rejects:1});}}
+function updateQuestConfig(i,p,v){gameState.questConfig[i][p]=parseInt(v);}
+function updatePlayerDistribution(){const t=parseInt(document.getElementById('totalPlayers').value);const d=playerDistribution[t];document.getElementById('goodPlayers').value=d.good;document.getElementById('evilPlayers').value=d.evil;document.getElementById('totalPlayersSpan').textContent=t;gameState.totalPlayers=t;gameState.goodPlayers=d.good;gameState.evilPlayers=d.evil;enforceCharacterLimits();updateCharacterCounts();}
+function enforceCharacterLimits(){const maxGood=gameState.goodPlayers;const maxEvil=gameState.evilPlayers;const goodChars=['merlin','percival'];const evilChars=['assassin','mordred','morgana','oberon'];let selectedGood=goodChars.filter(c=>gameState.characters[c]).length;if(selectedGood>maxGood)goodChars.forEach(c=>gameState.characters[c]=false);let selectedEvil=evilChars.filter(c=>gameState.characters[c]).length;if(selectedEvil>maxEvil)evilChars.forEach(c=>gameState.characters[c]=false);}
+function toggleCharacter(el,c){const t=el.classList.contains('active');const p=el.parentElement;if(t){el.classList.remove('active');p.classList.remove('active');p.classList.add('inactive');gameState.characters[c]=false;}else{const goodChars=['merlin','percival'];const evilChars=['assassin','mordred','morgana','oberon'];if(goodChars.includes(c)){if(goodChars.filter(ch=>gameState.characters[ch]).length>=gameState.goodPlayers)return;}if(evilChars.includes(c)){if(evilChars.filter(ch=>gameState.characters[ch]).length>=gameState.evilPlayers)return;}el.classList.add('active');p.classList.remove('inactive');p.classList.add('active');gameState.characters[c]=true;}updateCharacterCounts();}
+function updateCharacterCounts(){updateLoyalServants();updateEvilMinions();}
+function updateLoyalServants(){const s=['merlin','percival'].filter(c=>gameState.characters[c]).length;const l=gameState.goodPlayers-s;const c=document.getElementById('loyalServants');c.innerHTML='';for(let i=0;i<l;i++){const d=document.createElement('div');d.className='character-toggle disabled';d.innerHTML=`<div class="toggle-switch"><div class="toggle-slider"></div></div><span>Loyal Servant of Arthur ${i+1}</span>`;c.appendChild(d);}}
+function updateEvilMinions(){const s=['assassin','mordred','morgana','oberon'].filter(c=>gameState.characters[c]).length;const l=gameState.evilPlayers-s;const c=document.getElementById('evilMinions');c.innerHTML='';for(let i=0;i<l;i++){const d=document.createElement('div');d.className='character-toggle disabled';d.innerHTML=`<div class="toggle-switch"><div class="toggle-slider"></div></div><span>Minion of Mordred ${i+1}</span>`;c.appendChild(d);}}
+function showError(msg){const e=document.getElementById('errorMessage');e.textContent=msg;e.classList.add('show');setTimeout(()=>{e.classList.remove('show')},5000);}
+async function createRoom(){const hostName=document.getElementById('hostName').value.trim();if(!hostName){showError('Please enter your name');return;}gameState.hostName=hostName;const roomCode=Math.random().toString(36).substring(2,6).toUpperCase();gameState.roomCode=roomCode;roomRef=ref(database,'rooms/'+roomCode);playersRef=ref(database,'rooms/'+roomCode+'/players');await set(roomRef,{host:hostName,createdAt:serverTimestamp(),totalPlayers:gameState.totalPlayers,goodPlayers:gameState.goodPlayers,evilPlayers:gameState.evilPlayers,questConfig:gameState.questConfig,characters:gameState.characters,playerOrder:[]});const pRef=ref(database,'rooms/'+roomCode+'/players/'+currentUser.uid);await set(pRef,{name:hostName,joinedAt:serverTimestamp(),online:true});onDisconnect(pRef).update({online:false});document.getElementById('roomInfo').classList.remove('hidden');document.getElementById('roomCode').textContent='Room Code: '+roomCode;listenPlayers();}
+function listenPlayers(){onValue(playersRef,(snapshot)=>{const data=snapshot.val()||{};const list=document.getElementById('playersList');list.innerHTML='';let count=0;for(const uid in data){count++;const p=data[uid];const div=document.createElement('div');div.className='player-item '+(p.online?'online':'offline');div.textContent=p.name;list.appendChild(div);}document.getElementById('playersJoined').textContent=count;if(count>=gameState.totalPlayers)document.getElementById('startGameBtn').classList.remove('hidden');});}
+function startGame(){alert('Game starting! Implement game logic here.');}
+initFirebase();
+updateQuestSetup();
+updatePlayerDistribution();
+</script>
 </body>
 </html>
