@@ -280,6 +280,32 @@
             display: none;
         }
 
+        .connection-status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        .connection-connecting {
+            background: rgba(255, 165, 0, 0.9);
+            color: #fff;
+        }
+
+        .connection-connected {
+            background: rgba(78, 205, 196, 0.9);
+            color: #fff;
+        }
+
+        .connection-error {
+            background: rgba(255, 107, 107, 0.9);
+            color: #fff;
+        }
+
         @media (max-width: 768px) {
             .host-container {
                 padding: 20px;
@@ -301,6 +327,8 @@
     </style>
 </head>
 <body>
+    <div class="connection-status-indicator" id="connectionStatus">Connecting...</div>
+    
     <div class="host-container">
         <h1 class="title">Host Avalon Game</h1>
         
@@ -387,7 +415,9 @@
         </div>
 
         <div class="action-buttons">
-            <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()">Create Room</button>
+            <button class="btn btn-primary" id="createRoomBtn" onclick="createRoom()" disabled>
+                Connecting to Firebase...
+            </button>
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -413,17 +443,17 @@
         import { getDatabase, ref, set, get, onValue, push, remove, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
         import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-        // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyD0JNj2A0aS4T5KrOmCLR3xQ7zQoCG8znw",
-    authDomain: "avalon2-924b4.firebaseapp.com",
-    projectId: "avalon2-924b4",
-    storageBucket: "avalon2-924b4.firebasestorage.app",
-    messagingSenderId: "657775886781",
-    appId: "1:657775886781:web:fa914ba639b3ae05a452d4",
-    measurementId: "G-7VNPBZW3XV"
-  };
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCm1G9QC7mK1dlxannirjWc5pt6L9ByY3Q",
+            authDomain: "avalon-game-60c31.firebaseapp.com",
+            databaseURL: "https://avalon-game-60c31-default-rtdb.firebaseio.com",
+            projectId: "avalon-game-60c31",
+            storageBucket: "avalon-game-60c31.firebasestorage.app",
+            messagingSenderId: "557611279761",
+            appId: "1:557611279761:web:74145f94c434de13812630",
+            measurementId: "G-F10Q4HW1C3"
+        };
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -443,6 +473,108 @@
             onDisconnect,
             serverTimestamp,
             signInAnonymously
+        };
+
+        // Initialize Firebase and set up authentication state listener
+        window.initializeFirebase = async function() {
+            const statusIndicator = document.getElementById('connectionStatus');
+            const createBtn = document.getElementById('createRoomBtn');
+            
+            try {
+                statusIndicator.textContent = 'Connecting...';
+                statusIndicator.className = 'connection-status-indicator connection-connecting';
+                
+                console.log('Starting Firebase initialization...');
+                console.log('Firebase config:', {
+                    authDomain: firebaseConfig.authDomain,
+                    databaseURL: firebaseConfig.databaseURL,
+                    projectId: firebaseConfig.projectId
+                });
+                
+                // Test database connection first
+                statusIndicator.textContent = 'Testing database...';
+                const testRef = ref(database, '.info/connected');
+                
+                // Wait for database connection
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Database connection timeout'));
+                    }, 10000); // 10 second timeout
+                    
+                    const unsubscribe = onValue(testRef, (snapshot) => {
+                        clearTimeout(timeout);
+                        unsubscribe();
+                        
+                        if (snapshot.val() === true) {
+                            console.log('Database connected successfully');
+                            resolve();
+                        } else {
+                            reject(new Error('Database not connected'));
+                        }
+                    }, (error) => {
+                        clearTimeout(timeout);
+                        unsubscribe();
+                        reject(error);
+                    });
+                });
+                
+                // Now try authentication
+                statusIndicator.textContent = 'Authenticating...';
+                console.log('Starting anonymous authentication...');
+                
+                const userCredential = await signInAnonymously(auth);
+                window.currentUser = userCredential.user;
+                
+                console.log('Firebase connected successfully, user ID:', window.currentUser.uid);
+                statusIndicator.textContent = 'Connected';
+                statusIndicator.className = 'connection-status-indicator connection-connected';
+                
+                // Enable the create room button
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Room';
+                
+                // Hide status indicator after 3 seconds
+                setTimeout(() => {
+                    statusIndicator.style.display = 'none';
+                }, 3000);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Firebase connection error details:', {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                
+                let errorMessage = 'Connection failed: ';
+                
+                if (error.code === 'auth/network-request-failed') {
+                    errorMessage += 'Network error. Check your internet connection.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage += 'Too many requests. Please wait and try again.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage += 'Connection timeout. Please check your network.';
+                } else if (error.message.includes('Database not connected')) {
+                    errorMessage += 'Cannot connect to Firebase database.';
+                } else {
+                    errorMessage += error.message || 'Unknown error occurred.';
+                }
+                
+                statusIndicator.textContent = 'Connection Failed';
+                statusIndicator.className = 'connection-status-indicator connection-error';
+                
+                createBtn.textContent = 'Connection Failed - Click to Retry';
+                createBtn.onclick = () => {
+                    createBtn.textContent = 'Retrying...';
+                    createBtn.disabled = true;
+                    window.initializeFirebase();
+                };
+                createBtn.disabled = false;
+                
+                window.showError(errorMessage);
+                return false;
+            }
         };
     </script>
 
@@ -476,21 +608,8 @@
             10: {good: 6, evil: 4}
         };
 
-        let currentUser = null;
         let roomRef = null;
         let playersRef = null;
-
-        // Initialize Firebase authentication
-        async function initFirebase() {
-            try {
-                const userCredential = await firebase.signInAnonymously(firebase.auth);
-                currentUser = userCredential.user;
-                console.log('Signed in anonymously');
-            } catch (error) {
-                console.error('Firebase authentication error:', error);
-                showError('Failed to connect to Firebase. Please refresh the page.');
-            }
-        }
 
         document.getElementById('totalQuests').addEventListener('change', updateQuestSetup);
         document.getElementById('totalPlayers').addEventListener('change', updatePlayerDistribution);
@@ -502,7 +621,7 @@
             
             if (totalQuests % 2 === 0) {
                 document.getElementById('totalQuests').value = totalQuests + 1;
-                return updateQuestSetup(); // Recursively call with corrected value
+                return;
             }
             
             questSetup.style.display = 'block';
@@ -616,13 +735,14 @@
                 return;
             }
 
-            if (!currentUser) {
-                showError('Please wait for Firebase to connect');
+            if (!window.currentUser) {
+                showError('Firebase is not connected. Please wait and try again.');
                 return;
             }
 
-            document.getElementById('createRoomBtn').disabled = true;
-            document.getElementById('createRoomBtn').textContent = 'Creating Room...';
+            const createBtn = document.getElementById('createRoomBtn');
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating Room...';
 
             try {
                 // Check existing room count
@@ -657,7 +777,7 @@
                 const roomData = {
                     settings: {
                         hostName: hostName,
-                        hostId: currentUser.uid,
+                        hostId: window.currentUser.uid,
                         totalQuests: gameState.totalQuests,
                         questConfig: gameState.questConfig,
                         totalPlayers: gameState.totalPlayers,
@@ -667,7 +787,7 @@
                         createdAt: firebase.serverTimestamp()
                     },
                     players: {
-                        [currentUser.uid]: {
+                        [window.currentUser.uid]: {
                             name: hostName,
                             isHost: true,
                             isOnline: true,
@@ -678,14 +798,14 @@
                         phase: 'waiting',
                         currentRound: 1,
                         currentLeaderIndex: 0,
-                        playerOrder: [currentUser.uid]
+                        playerOrder: [window.currentUser.uid]
                     }
                 };
 
                 await firebase.set(roomRef, roomData);
 
                 // Set up disconnect handling
-                const playerRef = firebase.ref(firebase.database, `rooms/${roomCode}/players/${currentUser.uid}`);
+                const playerRef = firebase.ref(firebase.database, `rooms/${roomCode}/players/${window.currentUser.uid}`);
                 firebase.onDisconnect(playerRef).update({ isOnline: false });
 
                 // Set up real-time listeners
@@ -695,17 +815,14 @@
                 document.getElementById('roomCode').textContent = `Room Code: ${roomCode}`;
                 document.getElementById('roomInfo').classList.remove('hidden');
 
-                // Store room info in localStorage
-                localStorage.setItem('avalonRoomCode', roomCode);
-                localStorage.setItem('avalonPlayerId', currentUser.uid);
-                localStorage.setItem('avalonPlayerName', hostName);
+                console.log('Room created successfully:', roomCode);
 
             } catch (error) {
                 console.error('Error creating room:', error);
                 showError('Failed to create room. Please try again.');
             } finally {
-                document.getElementById('createRoomBtn').disabled = false;
-                document.getElementById('createRoomBtn').textContent = 'Create Room';
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Room';
             }
         }
 
@@ -794,7 +911,6 @@
                     newOrder.splice(dropIndex, 0, draggedPlayerId);
                     
                     // Update in Firebase
-                    const gameStateRef = firebase.ref(firebase.database, `rooms/${gameState.roomCode}/gameState`);
                     await firebase.set(firebase.ref(firebase.database, `rooms/${gameState.roomCode}/gameState/playerOrder`), newOrder);
                 }
             }
@@ -808,8 +924,9 @@
             if (!roomRef) return;
 
             try {
-                document.getElementById('startGameBtn').disabled = true;
-                document.getElementById('startGameBtn').textContent = 'Starting Game...';
+                const startBtn = document.getElementById('startGameBtn');
+                startBtn.disabled = true;
+                startBtn.textContent = 'Starting Game...';
 
                 // Assign roles randomly
                 const roles = generateRoles();
@@ -835,210 +952,9 @@
             } catch (error) {
                 console.error('Error starting game:', error);
                 showError('Failed to start game. Please try again.');
-                document.getElementById('startGameBtn').disabled = false;
-                document.getElementById('startGameBtn').textContent = 'Start Game';
-            }
-        }
-
-        function generateRoles() {
-            const roles = [];
-            
-            // Add special characters
-            if (gameState.characters.merlin) roles.push('Merlin');
-            if (gameState.characters.percival) roles.push('Percival');
-            if (gameState.characters.assassin) roles.push('Assassin');
-            if (gameState.characters.mordred) roles.push('Mordred');
-            if (gameState.characters.morgana) roles.push('Morgana');
-            if (gameState.characters.oberon) roles.push('Oberon');
-            
-            // Fill remaining slots
-            const loyalCount = gameState.goodPlayers - (gameState.characters.merlin ? 1 : 0) - (gameState.characters.percival ? 1 : 0);
-            const minionCount = gameState.evilPlayers - Object.keys(gameState.characters).filter(char => 
-                ['assassin', 'mordred', 'morgana', 'oberon'].includes(char) && gameState.characters[char]
-            ).length;
-            
-            for (let i = 0; i < loyalCount; i++) {
-                roles.push('Loyal Servant of Arthur');
-            }
-            for (let i = 0; i < minionCount; i++) {
-                roles.push('Minion of Mordred');
-            }
-            
-            // Shuffle roles
-            for (let i = roles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [roles[i], roles[j]] = [roles[j], roles[i]];
-            }
-            
-            return roles;
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-            
-            setTimeout(() => {
-                errorDiv.classList.remove('show');
-            }, 5000);
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            updatePlayerDistribution();
-            updateQuestSetup();
-            
-            // Check if returning to existing room
-            const existingRoomCode = localStorage.getItem('avalonRoomCode');
-            const existingPlayerId = localStorage.getItem('avalonPlayerId');
-            
-            if (existingRoomCode && existingPlayerId) {
-                // User might be returning from a game
-                document.getElementById('hostName').value = localStorage.getItem('avalonPlayerName') || '';
-            }
-            
-            // Initialize Firebase
-            await initFirebase();
-        });
-
-                localStorage.setItem('avalonRoomCode', roomCode);
-                localStorage.setItem('avalonPlayerId', currentUser.uid);
-                localStorage.setItem('avalonPlayerName', hostName);
-
-            } catch (error) {
-                console.error('Error creating room:', error);
-                showError('Failed to create room. Please try again.');
-            } finally {
-                document.getElementById('createRoomBtn').disabled = false;
-                document.getElementById('createRoomBtn').textContent = 'Create Room';
-            }
-        }
-
-        function setupRoomListeners() {
-            // Listen to players changes
-            onValue(playersRef, (snapshot) => {
-                const players = snapshot.val() || {};
-                gameState.players = players;
-                
-                const onlinePlayerCount = Object.values(players).filter(p => p.isOnline).length;
-                document.getElementById('playersJoined').textContent = onlinePlayerCount;
-                
-                updatePlayersList();
-                
-                // Show start button if enough players
                 const startBtn = document.getElementById('startGameBtn');
-                if (onlinePlayerCount === gameState.totalPlayers) {
-                    startBtn.classList.remove('hidden');
-                } else {
-                    startBtn.classList.add('hidden');
-                }
-            });
-
-            // Listen to player order changes
-            const gameStateRef = ref(database, `rooms/${gameState.roomCode}/gameState`);
-            onValue(gameStateRef, (snapshot) => {
-                const gameStateData = snapshot.val();
-                if (gameStateData && gameStateData.playerOrder) {
-                    gameState.playerOrder = gameStateData.playerOrder;
-                    updatePlayersList();
-                }
-            });
-        }
-
-        function updatePlayersList() {
-            const playersList = document.getElementById('playersList');
-            playersList.innerHTML = '';
-            
-            gameState.playerOrder.forEach((playerId, index) => {
-                const playerData = gameState.players[playerId];
-                if (!playerData) return;
-
-                const playerDiv = document.createElement('div');
-                playerDiv.className = `player-item ${playerData.isOnline ? 'online' : 'offline'}`;
-                playerDiv.draggable = true;
-                playerDiv.dataset.playerId = playerId;
-                
-                playerDiv.innerHTML = `
-                    <span>${index + 1}. ${playerData.name} ${playerData.isHost ? '(Host)' : ''}</span>
-                    <span class="connection-status ${playerData.isOnline ? 'status-online' : 'status-offline'}">
-                        ${playerData.isOnline ? 'Online' : 'Offline'}
-                    </span>
-                `;
-                
-                playerDiv.addEventListener('dragstart', handleDragStart);
-                playerDiv.addEventListener('dragover', handleDragOver);
-                playerDiv.addEventListener('drop', handleDrop);
-                playerDiv.addEventListener('dragend', handleDragEnd);
-                
-                playersList.appendChild(playerDiv);
-            });
-        }
-
-        function handleDragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.dataset.playerId);
-            e.target.classList.add('dragging');
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-        }
-
-        async function handleDrop(e) {
-            e.preventDefault();
-            const draggedPlayerId = e.dataTransfer.getData('text/plain');
-            const dropTarget = e.target.closest('.player-item');
-            
-            if (dropTarget && dropTarget.dataset.playerId !== draggedPlayerId) {
-                const draggedIndex = gameState.playerOrder.indexOf(draggedPlayerId);
-                const dropIndex = gameState.playerOrder.indexOf(dropTarget.dataset.playerId);
-                
-                if (draggedIndex !== -1 && dropIndex !== -1) {
-                    // Update player order
-                    const newOrder = [...gameState.playerOrder];
-                    newOrder.splice(draggedIndex, 1);
-                    newOrder.splice(dropIndex, 0, draggedPlayerId);
-                    
-                    // Update in Firebase
-                    await set(ref(database, `rooms/${gameState.roomCode}/gameState/playerOrder`), newOrder);
-                }
-            }
-        }
-
-        function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
-        }
-
-        async function startGame() {
-            if (!roomRef) return;
-
-            try {
-                document.getElementById('startGameBtn').disabled = true;
-                document.getElementById('startGameBtn').textContent = 'Starting Game...';
-
-                // Assign roles randomly
-                const roles = generateRoles();
-                const playerRoles = {};
-                
-                gameState.playerOrder.forEach((playerId, index) => {
-                    playerRoles[playerId] = roles[index];
-                });
-
-                // Update game state in Firebase
-                const gameStateRef = ref(database, `rooms/${gameState.roomCode}/gameState`);
-                const playerRolesRef = ref(database, `rooms/${gameState.roomCode}/playerRoles`);
-                
-                await set(ref(database, `rooms/${gameState.roomCode}/gameState/phase`), 'playing');
-                await set(ref(database, `rooms/${gameState.roomCode}/gameState/subPhase`), 'teamSelection');
-                await set(playerRolesRef, playerRoles);
-
-                // Redirect to player page
-                window.location.href = 'player.html';
-
-            } catch (error) {
-                console.error('Error starting game:', error);
-                showError('Failed to start game. Please try again.');
-                document.getElementById('startGameBtn').disabled = false;
-                document.getElementById('startGameBtn').textContent = 'Start Game';
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Game';
             }
         }
 
@@ -1100,7 +1016,7 @@
             }
             
             // Initialize Firebase
-            await initFirebase();
+            await window.initializeFirebase();
         });
 
         // Make functions globally available
@@ -1108,8 +1024,7 @@
         window.createRoom = createRoom;
         window.startGame = startGame;
         window.updateQuestConfig = updateQuestConfig;
+        window.showError = showError;
     </script>
-</body>
-</html>
 </body>
 </html>
